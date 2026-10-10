@@ -1,4 +1,4 @@
-# 🎓 Smart Attendance Analyzer (College AMS AI Edition)
+# 🎓 Smart Attendance Analyzer 
 
 > **A Next-Generation Academic Attendance Management & AI Advisory System for College Students.**
 > Inspired by the **Academics Management System (AMS)** at **Madhav Institute of Technology & Science (MITS), Gwalior** ([ams.mitsgwalior.in](https://ams.mitsgwalior.in/student/dashboard)) with advanced AI analytics, shortage early warning systems, and smart bunk calculators.
