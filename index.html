@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Attendance Analyzer | MITS Gwalior AMS</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+  <!-- Top Global Header (AMS Institutional Header) -->
+  <header class="sticky top-0 z-40 glass-nav border-b border-slate-200 dark:border-slate-800 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & College Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <i class="fa-solid fa-graduation-cap text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">Smart Attendance Analyzer</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 uppercase tracking-wider">AMS AI+</span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
+              Madhav Institute of Technology & Science (MITS), Gwalior • Academic Portal
+            </p>
+          </div>
+        </div>
+
+        <!-- Controls: Time, Profile Switcher, Dark Mode, Profile Badge -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Live Time Pill -->
+          <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono font-medium">
+            <i class="fa-regular fa-clock text-indigo-500"></i>
+            <span id="live-datetime-display">Loading...</span>
+          </div>
+
+          <!-- Demo Profile Switcher -->
+          <div class="flex items-center">
+            <label for="profile-switcher-select" class="sr-only">Switch Demo Profile</label>
+            <div class="relative">
+              <select id="profile-switcher-select" class="appearance-none pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="rohan_at_risk">⚠️ Aarav Sharma (At Risk - 73.6%)</option>
+                <option value="priya_safe">✅ Priya Verma (Safe - 88.5%)</option>
+                <option value="rohan_detention">⛔ Rohan Malviya (Critical - 59.3%)</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dark/Light Mode Toggle -->
+          <button id="theme-toggle-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:inline"></i>
+          </button>
+
+          <!-- Overall Percentage Header Pill -->
+          <div id="header-attendance-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-200 font-mono-num">
+            76.0%
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Navigation Tabs -->
+  <nav class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-16 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+      <div class="flex space-x-1 sm:space-x-2 py-2 min-w-max">
+        <button data-tab="dashboard" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </button>
+        <button data-tab="predictor" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-calculator"></i> What-If Predictor & Bunk Planner
+        </button>
+        <button data-tab="schedule" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-calendar-days"></i> Timetable & Classes
+        </button>
+        <button data-tab="ai-copilot" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-sparkles text-indigo-500"></i> AI Copilot & Advisor
+        </button>
+        <button data-tab="analytics" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-chart-pie"></i> Analytics & Trends
+        </button>
+        <button data-tab="medical-leave" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-file-medical"></i> Medical & OD Simulator
+        </button>
+        <button data-tab="reports" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-file-invoice"></i> Reports & Export
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- STUDENT PROFILE BANNER (MITS AMS Style) -->
+    <section class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+      <!-- Background subtle decorative aura -->
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+        
+        <!-- Left: Student Info & Avatar -->
+        <div class="flex items-start sm:items-center gap-4 sm:gap-5">
+          <div class="relative shrink-0">
+            <img id="profile-avatar" src="" alt="Student Avatar" class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-indigo-200 dark:border-indigo-800 shadow-md">
+            <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs shadow-sm" title="Active Student Status">
+              <i class="fa-solid fa-check text-[10px]"></i>
+            </span>
+          </div>
+
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 id="profile-name" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Aarav Sharma</h2>
+              <span id="profile-enrollment" class="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400">
+                0901CS221045
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                Regular Student
+              </span>
+            </div>
+
+            <p id="profile-branch" class="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-1">
+              B.Tech Computer Science & Engineering
+            </p>
+
+            <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+              <span><i class="fa-solid fa-layer-group mr-1 text-slate-400"></i><span id="profile-semester">VI (6th Sem) • Sec A</span></span>
+              <span><i class="fa-solid fa-calendar mr-1 text-slate-400"></i>Batch <span id="profile-batch">2022-2026</span></span>
+              <span><i class="fa-solid fa-star mr-1 text-amber-500"></i>CGPA <span id="profile-cgpa" class="font-bold text-slate-700 dark:text-slate-200 font-mono">8.42</span></span>
+              <span><i class="fa-solid fa-user-graduate mr-1 text-slate-400"></i>Mentor: <span id="profile-mentor">Dr. R. K. Gupta</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Action Buttons & Threshold Settings -->
+        <div class="flex flex-wrap items-center gap-2 self-start lg:self-center">
+          <button onclick="AppUI.openProfileModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-user-gear"></i> Edit Profile
+          </button>
+          <button onclick="AppUI.openAddSubjectModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Add Course
+          </button>
+          <button onclick="AppUI.exportToCSV()" class="px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-download"></i> CSV
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SHORTAGE ALERT BANNER (Early Warning System) -->
+    <section id="shortage-alert-banner" class="rounded-2xl border border-rose-300 dark:border-rose-900/80 bg-rose-50/70 dark:bg-rose-950/30 p-4 sm:p-5 shadow-xs">
+      <div class="flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center text-lg shrink-0 shadow-md shadow-rose-600/20 animate-pulse">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-extrabold text-rose-900 dark:text-rose-200 text-sm sm:text-base">
+              Shortage Warning: You have course(s) below mandatory college cutoff!
+            </h3>
+            <span class="text-xs font-bold text-rose-700 dark:text-rose-300">
+              MITS Examination Regulation Rule 4.2
+            </span>
+          </div>
+          <p class="text-xs text-rose-700 dark:text-rose-300 mt-1 leading-relaxed">
+            Students failing to maintain at least <strong>75% attendance</strong> are liable for debarment from appearing in Mid-Semester & End-Semester Examinations. Review the courses below and follow the AI recovery plan:
+          </p>
+
+          <!-- List of shortage subjects -->
+          <div id="shortage-alert-subjects-list" class="mt-3.5 space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: DASHBOARD -->
+    <div id="tab-content-dashboard" class="tab-content space-y-6">
+
+      <!-- 4 KPI SUMMARY CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Card 1: Overall Percentage with Circular Ring -->
+        <div class="card-hover-effect rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Overall Attendance</span>
+            <div id="kpi-overall-pct" class="text-3xl font-black font-mono-num text-slate-900 dark:text-white mt-1">
+              76.0%
+            </div>
+            <div id="kpi-overall-subtext" class="text-xs mt-1.5">
+              <!-- Safe or Warning -->
+            </div>
+          </div>
+          <div class="relative w-16 h-16 shrink-0">
+            <svg class="w-full h-full" viewBox="0 0 100 100">
+              <circle class="text-slate-100 dark:text-slate-800 stroke-current" stroke-width="10" cx="50" cy="50" r="40" fill="transparent"></circle>
+              <circle id="kpi-gauge-circle" class="circle-progress-bar stroke-current" stroke-width="10" stroke-linecap="round" cx="50" cy="50" r="40" fill="transparent" stroke-dasharray="251.32" stroke-dashoffset="60"></circle>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center text-xs font-bold font-mono">
+              75% min
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Classes Attended / Conducted -->
+        <div class="card-hover-effect rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Lectures</span>
+            <span class="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs">
+              <i class="fa-solid fa-chalkboard"></i>
+            </span>
+          </div>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span id="kpi-classes-attended" class="text-3xl font-black font-mono-num text-emerald-600 dark:text-emerald-400">155</span>
+            <span class="text-slate-400 text-sm font-semibold">/ <span id="kpi-classes-conducted">204</span> conducted</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            Missed: <strong id="kpi-classes-missed" class="text-rose-500 font-mono">49</strong> lectures
+          </p>
+        </div>
+
+        <!-- Card 3: Safe Bunk Budget -->
+        <div class="card-hover-effect rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Safe Bunk Cushion</span>
+            <span class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-xs">
+              <i class="fa-solid fa-couch"></i>
+            </span>
+          </div>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="kpi-safe-bunks" class="text-3xl font-black font-mono-num text-indigo-600 dark:text-indigo-400">2</span>
+            <span class="text-xs font-bold text-slate-500">classes safely</span>
+          </div>
+          <p id="kpi-safe-bunks-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-2 truncate">
+            Can miss without falling below 75%
+          </p>
+        </div>
+
+        <!-- Card 4: Shortage Subjects Count -->
+        <div class="card-hover-effect rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Critical Courses</span>
+            <span class="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs">
+              <i class="fa-solid fa-shield-virus"></i>
+            </span>
+          </div>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="kpi-shortage-count" class="text-3xl font-black font-mono-num text-rose-600 dark:text-rose-400">2</span>
+            <span class="text-xs font-bold text-rose-500">below 75% cutoff</span>
+          </div>
+          <p id="kpi-shortage-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-2 truncate">
+            Immediate attention needed
+          </p>
+        </div>
+
+      </div>
+
+      <!-- TODAY'S SCHEDULE & QUICK ATTENDANCE CHECK-IN -->
+      <section class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+              <h3 class="font-extrabold text-base text-slate-900 dark:text-white" id="today-schedule-day-label">Today's Schedule</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Live Tracker</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              1-Click Mark attendance right after each lecture. Stats recalculate instantly!
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="AppUI.switchTab('schedule')" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1">
+              View Full Week Timetable <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="today-schedule-container" class="space-y-3">
+          <!-- Dynamically injected classes -->
+        </div>
+      </section>
+
+      <!-- SUBJECT-WISE ATTENDANCE CARDS GRID -->
+      <section>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-extrabold text-lg text-slate-900 dark:text-white">Registered Courses & Attendance Status</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Individual subject percentage, classes needed to recover, and safe bunk cushions.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="AppUI.openAddSubjectModal()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300 hover:bg-indigo-100 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> Add Subject
+            </button>
+          </div>
+        </div>
+
+        <div id="subjects-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Subject cards injected dynamically -->
+        </div>
+      </section>
+
+      <!-- DETAILED TABULAR VIEW -->
+      <section class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-bold text-base text-slate-900 dark:text-white">Comprehensive Course Ledger</h4>
+          <span class="text-xs text-slate-400">Institutional Audit Format</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                <th class="py-3 px-4">Code</th>
+                <th class="py-3 px-4">Course Title</th>
+                <th class="py-3 px-4 text-center">Conducted</th>
+                <th class="py-3 px-4 text-center">Attended</th>
+                <th class="py-3 px-4 text-center">Absent</th>
+                <th class="py-3 px-4 text-center">Percentage</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-center">Required for 75%</th>
+                <th class="py-3 px-4 text-center">Safe Bunks</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="subjects-table-body">
+              <!-- Rows populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- TAB 2: SMART PREDICTOR & BUNK PLANNER -->
+    <div id="tab-content-predictor" class="tab-content hidden space-y-6">
+
+      <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 mb-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> What-If Attendance Simulator
+          </div>
+          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Smart Bunk & Attendance Projection Engine</h2>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">
+            Test real-world scenarios before taking leaves. See exactly how missing or attending future lectures alters your attendance percentage and exam eligibility.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          
+          <!-- Left Column: Controls (Subject Selector & Sliders) -->
+          <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Subject Selector -->
+            <div>
+              <label for="predictor-subject-select" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                1. Select Course to Simulate
+              </label>
+              <select id="predictor-subject-select" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <!-- Target Goal Threshold Slider/Input -->
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="flex items-center justify-between mb-2">
+                <label for="predictor-target-threshold" class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Target Threshold Requirement (%)
+                </label>
+                <div class="flex items-center gap-1 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <input type="number" id="predictor-target-threshold" min="50" max="95" value="75" class="w-16 px-2 py-1 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold font-mono">
+                  <span>%</span>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500">MITS default requirement is 75%. Some autonomous programs allow 65% with approved medical certificate.</p>
+            </div>
+
+            <!-- Slider 1: Future Classes to Attend -->
+            <div class="p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/60 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i> Future Classes I Plan to Attend
+                </span>
+                <span id="slider-attend-val" class="font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">5</span>
+              </div>
+              <input type="range" id="slider-future-attend" min="0" max="25" value="5" class="w-full accent-emerald-600 cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400">
+                <span>0 classes</span>
+                <span>12 classes</span>
+                <span>25 classes</span>
+              </div>
+            </div>
+
+            <!-- Slider 2: Future Classes to Miss / Bunk -->
+            <div class="p-5 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                  <i class="fa-solid fa-circle-xmark text-rose-600"></i> Future Classes I Plan to Miss (Bunk)
+                </span>
+                <span id="slider-miss-val" class="font-mono text-xl font-black text-rose-600 dark:text-rose-400">0</span>
+              </div>
+              <input type="range" id="slider-future-miss" min="0" max="15" value="0" class="w-full accent-rose-600 cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400">
+                <span>0 bunks</span>
+                <span>7 bunks</span>
+                <span>15 bunks</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Interactive Projection Results Card -->
+          <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
+            
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-6 space-y-5">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Simulation Outcome</span>
+                <span id="pred-delta-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                  +2.1% Gain
+                </span>
+              </div>
+
+              <!-- Before vs After Big Metric Comparison -->
+              <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <span class="text-xs font-semibold text-slate-400 block mb-1">Starting Attendance</span>
+                  <span id="pred-current-pct" class="text-3xl font-black font-mono-num text-slate-700 dark:text-slate-300">75.0%</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-indigo-500 shadow-md">
+                  <span class="text-xs font-semibold text-indigo-500 block mb-1">Projected Attendance</span>
+                  <span id="pred-projected-pct" class="text-3xl font-black font-mono-num text-indigo-600 dark:text-indigo-400">77.8%</span>
+                </div>
+              </div>
+
+              <!-- AI Verdict Box -->
+              <div id="pred-verdict-box" class="p-4 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-sm">
+                <!-- Dynamically populated -->
+              </div>
+
+              <!-- Quick Math Summary Counters -->
+              <div class="grid grid-cols-2 gap-3 pt-2 text-xs">
+                <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <span class="text-slate-400 block text-[11px]">Consecutive Classes to 75%:</span>
+                  <span id="pred-consec-needed-val" class="font-mono font-bold text-lg text-rose-500">0</span>
+                </div>
+                <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <span class="text-slate-400 block text-[11px]">Safe Skips / Bunks Allowed:</span>
+                  <span id="pred-safe-bunks-val" class="font-mono font-bold text-lg text-emerald-500">2</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mathematical Formula Educational Callout -->
+            <div class="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-600 dark:text-slate-300">
+              <div class="font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5 mb-1">
+                <i class="fa-solid fa-square-root-variable"></i> Verified College Mathematical Formulation:
+              </div>
+              <p class="font-mono text-[11px] bg-white dark:bg-slate-900 p-2 rounded-lg border border-indigo-100 dark:border-indigo-950 mt-1.5 text-slate-800 dark:text-slate-200">
+                Safe Bunks = floor((100 × Attended - Target × Conducted) / Target)
+              </p>
+              <p class="font-mono text-[11px] bg-white dark:bg-slate-900 p-2 rounded-lg border border-indigo-100 dark:border-indigo-950 mt-1 text-slate-800 dark:text-slate-200">
+                Classes Needed = ceil((Target × Conducted - 100 × Attended) / (100 - Target))
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: TIMETABLE & SCHEDULE STRUCTURE -->
+    <div id="tab-content-schedule" class="tab-content hidden space-y-6">
+      
+      <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 mb-2">
+              <i class="fa-solid fa-calendar-check"></i> Academic Schedule
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Weekly Lecture & Practical Matrix</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Section A • B.Tech Computer Science & Engineering (Even Semester 2025-26)</p>
+          </div>
+          <button onclick="window.print()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-print"></i> Print Timetable
+          </button>
+        </div>
+
+        <!-- Timetable 6-day Grid -->
+        <div id="timetable-full-matrix" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Monday - Saturday rendered here -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 4: AI COPILOT & ADVISOR (AURA) -->
+    <div id="tab-content-ai-copilot" class="tab-content hidden space-y-6">
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Automated Audit & Priority Actions -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs">
+            <h3 class="font-extrabold text-base text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-indigo-500"></i> AI Attendance Health Audit
+            </h3>
+            
+            <div id="ai-insights-report-container">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Interactive Aura AI Chat Assistant -->
+        <div class="lg:col-span-7">
+          <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs flex flex-col h-[650px]">
+            
+            <!-- Chat Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md">
+                  <i class="fa-solid fa-sparkles"></i>
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Aura AI Academic Copilot</h3>
+                  <p class="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online • Powered with Student Academic Context
+                  </p>
+                </div>
+              </div>
+              <button onclick="state.chatHistory = [{ sender: 'ai', time: 'Just now', text: 'Chat reset. How can I assist you with your attendance or timetable?' }]; AppUI.renderChatMessages();" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Clear Chat">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+              </button>
+            </div>
+
+            <!-- Pre-defined Prompt Chips -->
+            <div class="py-3 flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-800/80">
+              <button data-prompt="Which classes can I safely bunk this week?" class="ai-prompt-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900 transition-colors">
+                🎯 Which classes can I bunk?
+              </button>
+              <button data-prompt="Generate my attendance recovery plan" class="ai-prompt-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900 transition-colors">
+                ⚡ Recovery Roadmap
+              </button>
+              <button data-prompt="Can I take Friday off?" class="ai-prompt-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900 transition-colors">
+                🗓️ Can I take Friday off?
+              </button>
+              <button data-prompt="Explain college medical leave rules" class="ai-prompt-chip px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900 transition-colors">
+                🏥 Medical leave rules
+              </button>
+            </div>
+
+            <!-- Chat Message Stream -->
+            <div id="ai-chat-messages" class="flex-1 overflow-y-auto py-4 px-1 space-y-4">
+              <!-- Chat bubbles dynamically populated -->
+            </div>
+
+            <!-- Chat Input Form -->
+            <form id="ai-chat-form" class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+              <input type="text" id="ai-chat-input" placeholder="Ask Aura (e.g. 'Can I miss Compiler Design tomorrow?', 'What is my bunk limit?')..." class="flex-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <button type="submit" class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2">
+                <span>Send</span> <i class="fa-solid fa-paper-plane text-xs"></i>
+              </button>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 5: ANALYTICS & TRENDS -->
+    <div id="tab-content-analytics" class="tab-content hidden space-y-6">
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Chart 1: Subject Attendance Comparison with 75% Threshold Line -->
+        <div class="lg:col-span-8 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Course Attendance Breakdown</h3>
+              <p class="text-xs text-slate-500">Subject percentage vs institutional 75% benchmark cutoff</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-semibold">
+              <span class="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span> Safe (&gt;75%)
+              <span class="inline-block w-3 h-3 rounded-sm bg-rose-500 ml-2"></span> Shortage (&lt;75%)
+            </div>
+          </div>
+          <div class="h-72 w-full">
+            <canvas id="chart-subjects-bar"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Attended vs Missed Doughnut -->
+        <div class="lg:col-span-4 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Aggregate Class Ratio</h3>
+            <p class="text-xs text-slate-500">Total lectures attended vs unexcused absences</p>
+          </div>
+          <div class="h-60 w-full my-4">
+            <canvas id="chart-overall-doughnut"></canvas>
+          </div>
+          <div class="text-center text-xs text-slate-500 font-mono">
+            Conducted by MITS Academic Affairs
+          </div>
+        </div>
+
+        <!-- Chart 3: 12-Week Semester Trend Trajectory -->
+        <div class="lg:col-span-12 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Semester Attendance Trajectory (Week 1 to Week 12)</h3>
+              <p class="text-xs text-slate-500">Tracking historical trend and detention danger zones</p>
+            </div>
+          </div>
+          <div class="h-72 w-full">
+            <canvas id="chart-attendance-trend"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 6: MEDICAL & ON-DUTY (OD) LEAVE SIMULATOR -->
+    <div id="tab-content-medical-leave" class="tab-content hidden space-y-6">
+
+      <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 mb-2">
+            <i class="fa-solid fa-hospital-user"></i> Exemption Simulator
+          </div>
+          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Medical & Official Duty (OD) Leave Simulator</h2>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">
+            Colleges permit attendance relaxations for certified medical illnesses or official university deputations (sports tournaments, hackathons, seminars). Test if submitting your certificates clears your shortage!
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          
+          <!-- Input Form -->
+          <div class="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-4">
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white">Submit Simulated Certificate Details</h4>
+
+            <div>
+              <label for="med-leave-days-input" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                Number of Approved Leave Days:
+              </label>
+              <input type="number" id="med-leave-days-input" min="0" max="15" value="3" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold font-mono">
+              <span class="text-[11px] text-slate-400 mt-1 block">Assuming an average of 3 to 4 classes per working day.</span>
+            </div>
+
+            <div>
+              <label for="med-leave-type-select" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                Category of Exemption:
+              </label>
+              <select id="med-leave-type-select" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs font-semibold">
+                <option value="medical">Medical Illness (Hospitalization / CMO Endorsement)</option>
+                <option value="hackathon">Smart India Hackathon / Technical Competition</option>
+                <option value="sports">University AIU Sports / Cultural Fest Deputation</option>
+                <option value="ncc">NCC / NSS Camp Leave</option>
+              </select>
+            </div>
+
+            <div class="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-[11px] text-indigo-700 dark:text-indigo-300 leading-relaxed">
+              <i class="fa-solid fa-circle-info mr-1"></i> Under MITS ordinance, maximum relaxation is capped at 10% (i.e. minimum 65% with Medical Board clearance).
+            </div>
+          </div>
+
+          <!-- Simulation Result Display -->
+          <div class="p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900 flex flex-col justify-between">
+            <div>
+              <h4 class="font-bold text-sm text-indigo-950 dark:text-indigo-200">Adjusted Attendance Projection</h4>
+              
+              <div class="mt-4 space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-indigo-100 dark:border-indigo-900/60 text-xs">
+                  <span class="text-slate-600 dark:text-slate-400">Classes Compensated / Recovered:</span>
+                  <span id="med-recovered-classes" class="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">+9 classes</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-indigo-100 dark:border-indigo-900/60 text-xs">
+                  <span class="text-slate-600 dark:text-slate-400">Projected Corrected Attendance:</span>
+                  <span id="med-adjusted-pct" class="font-mono font-black text-2xl text-indigo-600 dark:text-indigo-400">80.4%</span>
+                </div>
+                <div class="flex justify-between items-center py-2 text-xs">
+                  <span class="text-slate-600 dark:text-slate-400">Detention Clearance Status:</span>
+                  <span id="med-status-badge" class="font-bold text-emerald-600">Eligible for End-Sem Exam</span>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="alert('Simulation applied! In real life, submit original medical slips to your HOD within 7 days of returning to campus.')" class="w-full mt-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-colors">
+              <i class="fa-solid fa-file-arrow-up mr-1.5"></i> Download Medical Undertaking Form
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 7: REPORTS & EXPORT (OFFICIAL PRINTABLE STATEMENT) -->
+    <div id="tab-content-reports" class="tab-content hidden space-y-6">
+
+      <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Official Attendance Statement & Export</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Generate official MITS-DU stamped report card or import external attendance spreadsheets.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="AppUI.printReport()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-colors flex items-center gap-2">
+              <i class="fa-solid fa-print"></i> Print Official Slip
+            </button>
+            <button onclick="AppUI.exportToCSV()" class="px-4 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors flex items-center gap-2">
+              <i class="fa-solid fa-file-csv"></i> Download CSV
+            </button>
+            <label class="px-4 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-upload"></i> Import CSV
+              <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- PRINTABLE OFFICIAL AMS ATTENDANCE CERTIFICATE -->
+        <div id="official-ams-certificate" class="rounded-2xl border-2 border-slate-300 dark:border-slate-700 p-8 bg-white text-slate-900 shadow-sm space-y-6">
+          
+          <!-- Certificate Header -->
+          <div class="text-center pb-4 border-b-2 border-slate-800">
+            <h3 class="text-lg font-black uppercase tracking-wider text-slate-900">Madhav Institute of Technology & Science, Gwalior</h3>
+            <p class="text-xs text-slate-600 uppercase font-semibold">(A Govt. Aided Autonomous & Deemed-to-be University • Estd. 1957)</p>
+            <h4 class="text-sm font-bold mt-2 text-indigo-900">ACADEMICS MANAGEMENT SYSTEM (AMS) • OFFICIAL ATTENDANCE DOSSIER</h4>
+            <p class="text-[11px] text-slate-500 font-mono mt-0.5">Session: 2025-2026 (Even Semester) • Generated on: <span class="font-bold">10-Oct-2026</span></p>
+          </div>
+
+          <!-- Student Particulars Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs border-b border-slate-200 pb-4">
+            <div>
+              <span class="text-slate-500 block">Student Name:</span>
+              <strong id="rep-student-name" class="text-slate-900 text-sm">Aarav Sharma</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Enrollment No:</span>
+              <strong id="rep-student-enroll" class="font-mono text-slate-900 text-sm">0901CS221045</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Department & Sem:</span>
+              <strong class="text-slate-900">CSE • VI Semester (Sec A)</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Eligibility Status:</span>
+              <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">Conditional / Shortage Notice</span>
+            </div>
+          </div>
+
+          <!-- Institutional Notice -->
+          <div class="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <strong>Ordinance Clause:</strong> A student shall be deemed to have pursued a regular course of study in a subject if they have attended not less than <strong>75% of classes held</strong> (Theory and Practical taken separately).
+          </div>
+
+          <!-- Signatures & Verification Seal -->
+          <div class="pt-8 flex justify-between items-end text-center text-xs">
+            <div>
+              <div class="w-32 border-b border-slate-400 mb-1"></div>
+              <span class="text-slate-600">Student Signature</span>
+            </div>
+            <div class="text-center">
+              <div class="w-16 h-16 border-2 border-dashed border-indigo-300 rounded-lg mx-auto flex items-center justify-center text-indigo-500 text-xs font-mono font-bold">
+                AMS QR SEAL
+              </div>
+              <span class="text-[10px] text-slate-400 block mt-1">Digitally Verified</span>
+            </div>
+            <div>
+              <div class="w-32 border-b border-slate-400 mb-1"></div>
+              <span class="text-slate-600">Dean (Academics) / Controller</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: EDIT STUDENT PROFILE -->
+  <div id="edit-profile-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Edit Student Profile Details</h3>
+        <button onclick="AppUI.closeProfileModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label for="edit-prof-name" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Full Name</label>
+          <input type="text" id="edit-prof-name" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+        </div>
+        <div>
+          <label for="edit-prof-enrollment" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Enrollment / Roll Number</label>
+          <input type="text" id="edit-prof-enrollment" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="edit-prof-branch" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Branch / Major</label>
+            <input type="text" id="edit-prof-branch" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+          <div>
+            <label for="edit-prof-semester" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Semester & Section</label>
+            <input type="text" id="edit-prof-semester" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="edit-prof-threshold" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Threshold (%)</label>
+            <input type="number" id="edit-prof-threshold" min="50" max="95" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-mono">
+          </div>
+          <div>
+            <label for="edit-prof-cgpa" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Current CGPA</label>
+            <input type="text" id="edit-prof-cgpa" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-mono">
+          </div>
+        </div>
+        <div>
+          <label for="edit-prof-mentor" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Faculty Mentor</label>
+          <input type="text" id="edit-prof-mentor" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+        <button onclick="AppUI.closeProfileModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          Cancel
+        </button>
+        <button onclick="AppUI.saveProfileDetails()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT SUBJECT -->
+  <div id="edit-subject-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Modify Subject Records</h3>
+        <button onclick="AppUI.closeEditSubjectModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="modal-edit-sub-id">
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="modal-edit-sub-code" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Subject Code</label>
+            <input type="text" id="modal-edit-sub-code" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-mono">
+          </div>
+          <div>
+            <label for="modal-edit-sub-type" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Course Type</label>
+            <select id="modal-edit-sub-type" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+              <option value="Theory">Theory</option>
+              <option value="Practical">Practical (Lab)</option>
+              <option value="Tutorial">Tutorial</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="modal-edit-sub-name" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Subject Title</label>
+          <input type="text" id="modal-edit-sub-name" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="modal-edit-sub-faculty" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Faculty Name</label>
+            <input type="text" id="modal-edit-sub-faculty" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+          <div>
+            <label for="modal-edit-sub-room" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Room / Lab</label>
+            <input type="text" id="modal-edit-sub-room" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div>
+            <label for="modal-edit-sub-conducted" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Total Conducted</label>
+            <input type="number" id="modal-edit-sub-conducted" min="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono font-bold">
+          </div>
+          <div>
+            <label for="modal-edit-sub-attended" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Total Attended</label>
+            <input type="number" id="modal-edit-sub-attended" min="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono font-bold text-emerald-600">
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <button onclick="AppUI.deleteSubject()" class="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors">
+          <i class="fa-solid fa-trash mr-1"></i> Delete
+        </button>
+        <div class="flex gap-2">
+          <button onclick="AppUI.closeEditSubjectModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            Cancel
+          </button>
+          <button onclick="AppUI.saveEditedSubject()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD NEW SUBJECT -->
+  <div id="add-subject-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Register New Subject / Course</h3>
+        <button onclick="AppUI.closeAddSubjectModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-add-subject" onsubmit="AppUI.handleAddSubjectSubmit(event)" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="add-sub-code" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Subject Code *</label>
+            <input type="text" id="add-sub-code" required placeholder="e.g. CS-608" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-mono">
+          </div>
+          <div>
+            <label for="add-sub-type" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Course Type</label>
+            <select id="add-sub-type" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+              <option value="Theory">Theory</option>
+              <option value="Practical">Practical (Lab)</option>
+              <option value="Tutorial">Tutorial</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="add-sub-name" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Subject Title *</label>
+          <input type="text" id="add-sub-name" required placeholder="e.g. Cyber Security & Forensics" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="add-sub-faculty" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Faculty Name</label>
+            <input type="text" id="add-sub-faculty" placeholder="e.g. Dr. Rajesh Kumar" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+          <div>
+            <label for="add-sub-room" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Room / Hall</label>
+            <input type="text" id="add-sub-room" placeholder="e.g. LT-202" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div>
+            <label for="add-sub-conducted" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Classes Conducted</label>
+            <input type="number" id="add-sub-conducted" min="0" value="20" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono font-bold">
+          </div>
+          <div>
+            <label for="add-sub-attended" class="block font-bold text-slate-600 dark:text-slate-300 mb-1">Classes Attended</label>
+            <input type="number" id="add-sub-attended" min="0" value="16" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono font-bold text-emerald-600">
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+          <button type="button" onclick="AppUI.closeAddSubjectModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md">
+            Add Course
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-12 py-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+        <span>Smart Attendance Analyzer • Inspired by MITS Academics Management System (AMS)</span>
+      </div>
+      <div>
+        <span>AI-Powered Bunk Calculator, Shortage Predictor & Timetable Tracker</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Engine Script -->
+  <script src="app.js"></script>
+</body>
+</html>
